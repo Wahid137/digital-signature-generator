@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Digital Signature Generator</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-200">
+    <div class="container mx-auto p-4">
+      <h1 class="text-2xl font-bold mb-4">Digital Signature Generator</h1>
+      <input type="file" id="fileInput" class="mb-4" />
+      <button
+        id="generateSignature"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+      >
+        Generate Signature
+      </button>
+      <div id="signatureResult" class="mt-4"></div>
+    </div>
+
+    <script>
+      // SHA-256 hashing algorithm implementation
+      function sha256(plain) {
+        // Returns a promise with the hashed value
+        return new Promise((resolve) => {
+          const encoder = new TextEncoder();
+          const data = encoder.encode(plain);
+          crypto.subtle.digest("SHA-256", data).then((hash) => {
+            resolve(hash);
+          });
+        });
+      }
+
+      // Function to generate digital signature using SHA-256 hashing algorithm
+      async function generateDigitalSignature(file) {
+        return new Promise(async (resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = async function (event) {
+            const fileData = event.target.result;
+            const fileName = file.name; // Get the file name
+            const combinedData = fileName + fileData; // Combine file name and data
+            const hashArrayBuffer = await sha256(combinedData);
+            const hashHex = Array.from(new Uint8Array(hashArrayBuffer))
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join("");
+            resolve(hashHex);
+          };
+          reader.onerror = function (event) {
+            reject(event.target.error);
+          };
+          reader.readAsBinaryString(file);
+        });
+      }
+
+      // Event listener for file input change
+      document
+        .getElementById("generateSignature")
+        .addEventListener("click", async function () {
+          const fileInput = document.getElementById("fileInput");
+          const file = fileInput.files[0];
+
+          if (file) {
+            try {
+              const signature = await generateDigitalSignature(file);
+              document.getElementById("signatureResult").innerText =
+                "Digital signature: " + signature;
+            } catch (error) {
+              console.error("Error generating digital signature:", error);
+            }
+          } else {
+            alert("Please select a file first.");
+          }
+        });
+    </script>
+  </body>
+</html>
